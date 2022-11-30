@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
 // pin on Teensy through which communications happen
-const int pin = 12;
+const int pin = 19;
 
 /* emptyAction and seq represent 32bit responses from the controller 
     representing controller input for a given frame.
@@ -25,7 +25,8 @@ volatile int8_t yAxis;
 // helps deal with nonsense request from console
 volatile bool sentLast;
 // interrupt for queueing the next command, also deals with nonsense request
-IntervalTimer setCommand;
+//IntervalTimer setCommand;
+hw_timer_t *My_timer = NULL;
 
 // Button refs
 #define A 0
@@ -47,6 +48,60 @@ IntervalTimer setCommand;
 #define Y 24
 
 
+void IRAM_ATTR nextCommand() {
+    // set seq to be the next command in the queue
+    //setCommand.end();
+    timerAlarmDisable(My_timer);
+    resetSeq();
+
+    for (int i=0 ; i<8 ; i++){
+        if ((1<<i) & bttn1) {
+            pressButton(i);
+        }
+        if ((1<<i) & bttn2) {
+            pressButton(i + 8);
+        }
+    }
+
+    setAxis(X, xAxis);
+    setAxis(Y, yAxis);
+
+    // default buttons to queue are an empty command
+    bttn1 = 0;
+    bttn2 = 0;
+    xAxis = 0;
+    yAxis = 0;
+
+    sentLast = true;
+}
+
+void pressButton(int button) {
+    // set analog button values in seq
+    seq[button * 4 + 1] = true;
+    seq[button * 4 + 2] = true;
+}
+
+void setAxis(int axis, int8_t val) {
+    // set joystiq values in seq
+    for (int i=0 ; i<8 ; i++) {
+        bool bit = (1<<(7-i)) & val;
+        if (bit) {
+            pressButton(axis + i);
+        }
+    }
+}
+
+void resetSeq() {
+    // set all seq values to controller input with no button presses
+    for (int i=0 ; i<SEQLEN ; i++) {
+        seq[i] = emptyAction[i];
+    }
+}
+
+
+
+
+
 void setup() {
     init();
     // start connection to Serial port
@@ -55,8 +110,13 @@ void setup() {
     Serial.println();
     // set up interrupts for console input request + command queueing
     attachInterrupt(digitalPinToInterrupt(pin), writeSeq, FALLING);
-    setCommand.priority(0);
-    setCommand.begin(nextCommand, 400);
+    //setCommand.priority(0);
+    //setCommand.begin(nextCommand, 400);
+    //////// NEW CODE BELOW 
+    My_timer = timerBegin(0, 80, true);
+    timerAttachInterrupt(My_timer, &nextCommand, true);
+    timerAlarmWrite(My_timer, 400, true);
+    timerAlarmEnable(My_timer);    
 }
 
 void init() {
@@ -103,7 +163,8 @@ void loop() {
 void writeSeq() {
     // communicate command in seq to the console
     noInterrupts();
-    setCommand.end();
+    // NEW CODE
+    timerAlarmDisable(My_timer);  
     delayMicroseconds(32);
     pinMode(pin, OUTPUT);
     for (int i=0 ; i<SEQLEN ; i++) {
@@ -115,55 +176,10 @@ void writeSeq() {
     }
     pinMode(pin, INPUT);
     attachInterrupt(digitalPinToInterrupt(pin), writeSeq, FALLING);
-    setCommand.begin(nextCommand, 4000);
+    //setCommand.begin(nextCommand, 4000);
+    timerAlarmWrite(My_timer, 4000, true);
+    timerAlarmEnable(My_timer);
     interrupts();
 }
 
-void nextCommand() {
-    // set seq to be the next command in the queue
-    setCommand.end();
-    resetSeq();
 
-    for (int i=0 ; i<8 ; i++){
-        if ((1<<i) & bttn1) {
-            pressButton(i);
-        }
-        if ((1<<i) & bttn2) {
-            pressButton(i + 8);
-        }
-    }
-
-    setAxis(X, xAxis);
-    setAxis(Y, yAxis);
-
-    // default buttons to queue are an empty command
-    bttn1 = 0;
-    bttn2 = 0;
-    xAxis = 0;
-    yAxis = 0;
-
-    sentLast = true;
-}
-
-void pressButton(int button) {
-    // set analog button values in seq
-    seq[button * 4 + 1] = true;
-    seq[button * 4 + 2] = true;
-}
-
-void setAxis(int axis, int8_t val) {
-    // set joystiq values in seq
-    for (int i=0 ; i<8 ; i++) {
-        bool bit = (1<<(7-i)) & val;
-        if (bit) {
-            pressButton(axis + i);
-        }
-    }
-}
-
-void resetSeq() {
-    // set all seq values to controller input with no button presses
-    for (int i=0 ; i<SEQLEN ; i++) {
-        seq[i] = emptyAction[i];
-    }
-}
