@@ -1,10 +1,10 @@
-# N64 Controller Emulator (ESP32)
+# N64 Controller Emulator (TEENSY LC)
 
-This is code to be compiled on the ESP32, so that it can emulate a Nintendo 64 controller. The ESP32 communicates with the console by monitoring the voltage over the data wire: when it detects a request for information, it responds with the most recently queued controller input. Inputs are queued through the ESP32's communication with another computer over a Serial port - this allows the inputs to be determined by a program running independently of the ESP Chip.
+This is code to be compiled on the ESP32, so that it can emulate a Nintendo 64 controller. The TEENSY communicates with the console by monitoring the voltage over the data wire: when it detects a request for information, it responds with the most recently queued controller input. Inputs are queued through the TEENSY's communication with another computer over a Serial port - this allows the inputs to be determined by a program running independently of the TEENSY Chip.
 
 ## Set up
 
-You need an N64 controller you are willing to cut the cable of or an extension cable. The data wire, which is the white wire (of the cable's 3 internal wires white-data, black-ground, red-power). Connect the data wire to the ESP32's pin #19. Connect the ESP32 through a microusb, and in the Arduino IDE upload the code
+You need an N64 controller you are willing to cut the cable of or an extension cable. The data wire, which is the white wire (of the cable's 3 internal wires white-data, black-ground, red-power). Connect the data wire to the TEENSY's pin #12. Connect the TEENSY through a microusb, and in the Arduino IDE upload the code
 
 
 to compile the code and upload it onto the Teensy.
