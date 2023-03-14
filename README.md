@@ -1,6 +1,6 @@
 # N64 Controller Emulator (TEENSY LC)
 
-This is code to be compiled on the ESP32, so that it can emulate a Nintendo 64 controller. The TEENSY communicates with the console by monitoring the voltage over the data wire: when it detects a request for information, it responds with the most recently queued controller input. Inputs are queued through the TEENSY's communication with another computer over a Serial port - this allows the inputs to be determined by a program running independently of the TEENSY Chip.
+This is code to be compiled on the Teensy, so that it can emulate a Nintendo 64 controller. The TEENSY communicates with the console by monitoring the voltage over the data wire: when it detects a request for information, it responds with the most recently queued controller input. Inputs are queued through the TEENSY's communication with another computer over a Serial port - this allows the inputs to be determined by a program running independently of the TEENSY Chip.
 
 ## Set up
 
@@ -21,7 +21,7 @@ or something similar.
 
 The Python script takes the above Serial port as a command line argument and then generates random inputs to send over the Serial port to the Teensy which in turn sends them to the console (we have added a simple if statement to make sure the program never presses the start button. I think the timing is off so it still presses start. Need to work on the timer interrupts.
 
-The script is meant to be a basic example of how a script running on a non-ESP32 system can communicate with the ESP32 and dictate the contoller inputs it sends to the console.
+The script is meant to be a basic example of how a script running on a non-Teensy system can communicate with the Teensy and dictate the contoller inputs it sends to the console.
 
 ### Communication Protocol
 
@@ -47,7 +47,7 @@ High voltage is the default inactive voltage.
 
 The console sends an 8 bit message to the controller, generally of the form 00000001. This message is a request for controller input.
 
-* Note: We respond to each message as if it is of this form (asking for controller input), and use an TimerAlarm to deal with cases where it is not. Periodically the console sends two requests in quick succession. The second is a request for controller input (00000001); the first is a request for non-controller input information (of the form 00000000), and the console will not process the controller's response as controller input. However, responding to this message with controller input causes no problems. The interval timer allows us to identify if we've received two requests in quick succession. If we have, we respond to the second request with the same controller input as we responded to the first. This way we can make sure no controller input is lost. We deal with the problem in this way, because the ESP32 execution of the basic library functions are not fast enough to distinguish between the console requests of 00000001 and 00000000.
+* Note: We respond to each message as if it is of this form (asking for controller input), and use an TimerAlarm to deal with cases where it is not. Periodically the console sends two requests in quick succession. The second is a request for controller input (00000001); the first is a request for non-controller input information (of the form 00000000), and the console will not process the controller's response as controller input. However, responding to this message with controller input causes no problems. The interval timer allows us to identify if we've received two requests in quick succession. If we have, we respond to the second request with the same controller input as we responded to the first. This way we can make sure no controller input is lost. We deal with the problem in this way, because the Teensy execution of the basic library functions are not fast enough to distinguish between the console requests of 00000001 and 00000000.
 
 The controller responds with a 32 bit signal. The first 16 bits represent analog buttons (0 means unpressed; 1 means pressed). The last 16 represent the joystick position - the first 8 are the position on the x-axis, and the last eight are the position on the y-axis.
 
